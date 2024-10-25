@@ -68,3 +68,56 @@ def time_to_temp(avg_temps, temp, index_to_time):
         
     print(f"None of the given average temperatures is above {temp}.")
     return None
+
+
+# EXPERIMENTAL -------------------------------------------------------------------------------------------------
+# some taken from https://levelup.gitconnected.com/solving-2d-heat-equation-numerically-using-python-3334004aa01a
+
+def simulate_2d_corner_heat(u0, bT, bB, D, T, Nt_points, Lx, Ly, Nx_points, Ny_points):
+    """
+    Simulates the heat distribution over time of a material over time with one fixed temperature endpoint, one endpoint with a time dependent temperature, and a sink term, using a backward Euler scheme.
+    
+    Args:
+        u0 (2d array): The initial condition. Should be a vector of length Nx_points
+        bT (float): The top temperature
+        bB (float): The temp of the bottom side
+        D (float): Thermal diffusivity coefficient of the liquid
+        T (float): End time of simulation (seconds)
+        Nt_points (int): Number of time points to simulate between 0 and T
+        Lx (float): Width of space in x dir (metres)
+        Ly (float): Width of space in y dir (metres)
+        Nx_points (int): Number of to discretise x from 0 to Lx
+        Ny_points (int): Number of to discretise y from 0 to Ly
+        a (float): The heat transfer coefficient for the sink term. Set to 0 for no sink term.
+        u_inf (float): The ambient (air) temperature, for the sink term. If no sink term, you can leave this blank        
+    Returns:
+        U (matrix): A Nx_points by Ny_points by Nt_points matrix, where each U[:, :, t] is the simulated heat distribution at a time t.
+
+    """
+    dx = Lx/(Nx_points - 1)
+    dy = Ly/(Ny_points - 1)
+    dt = T/(Nt_points - 1)
+    Cx = D*dt/(dx**2)
+    Cy = D*dt/(dy**2)
+    if Cx > 0.5:
+        print(f"Warning: {Cx=} is greater than 0.5. This may cause instability. Try using a smaller timestep.")
+    if Cy > 0.5:
+        print(f"Warning: {Cy=} is greater than 0.5. This may cause instability. Try using a smaller timestep.")
+
+    U = np.zeros((Nx_points, Ny_points, Nt_points)) # this is where we'll put results
+    U[:, :, 0] = u0 # initial condition
+
+    # BCs:
+    U[:, 0, 1:] = bT # top
+    U[:, Ny_points-1, 1:] = bB # bottom
+
+    # Run simulation
+    for s in range(1, Nt_points):
+        for m in range(1,Nx_points - 1):
+            for n in range(1, Ny_points - 1):
+                U[m,n,s] = U[m,n,s-1] + Cx*U[m+1,n,s-1] -2*Cx*U[m,n,s-1] + Cx*U[m-1,n,s-1] + Cy*U[m,n+1,s-1] -2*Cy*U[m,n,s-1] + Cy*U[m,n-1,s-1]
+
+        U[0,1:-1,s] = U[1,1:-1,s] # L and R bdary conditions
+        U[-1,1:-1,s] = U[-2,1:-1,s]
+
+    return U
