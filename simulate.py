@@ -112,15 +112,13 @@ def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW
 
     # Create the vector that updates u_old to account for the Newton cooling boundary condition
     newtcool = np.zeros(Nx_points)
+    # Set up the rest of the Newton cooling boundary condition
+    newtcool[-1] = (C*2*dx*h*u_inf)/kW
 
     # Run simulation
     for n in range(1, Nt_points):
-
-        # Update the Newton cooling boundary condition
-        newtcool[-1] = (C*2*dx*h*u_inf)/kW
-        
         # update u by solving the matrix system AU_{t+1} = U_t
-        u_old = U[:,n-1] #+ newtcool
+        u_old = U[:,n-1] + newtcool
         u_new = np.linalg.solve(A,u_old) 
         u_new[1:Nx_points-1] -= a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
 
