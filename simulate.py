@@ -69,55 +69,63 @@ def time_to_temp(avg_temps, temp, index_to_time):
     print(f"None of the given average temperatures is above {temp}.")
     return None
 
-
-# EXPERIMENTAL -------------------------------------------------------------------------------------------------
-# some taken from https://levelup.gitconnected.com/solving-2d-heat-equation-numerically-using-python-3334004aa01a
-
-def simulate_2d_corner_heat(u0, bT, bB, D, T, Nt_points, Lx, Ly, Nx_points, Ny_points):
+def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW, u_inf = 0):
     """
-    Simulates the heat distribution over time of a material over time with one fixed temperature endpoint, one endpoint with a time dependent temperature, and a sink term, using a backward Euler scheme.
+    Simulates the heat distribution over time of a material over time with one Newton cooling boundary condition, one endpoint with a time dependent temperature, and a sink term, using a backward Euler scheme.
     
     Args:
-        u0 (2d array): The initial condition. Should be a vector of length Nx_points
-        bT (float): The top temperature
-        bB (float): The temp of the bottom side
+        b0 (function of t): The bottom boundary condition U(0,t) = b0(t). Can set to constant by passing e.g. lambda t: 150
+        u0 (1d array): The initial condition. Should be a vector of length Nx_points
         D (float): Thermal diffusivity coefficient of the liquid
         T (float): End time of simulation (seconds)
         Nt_points (int): Number of time points to simulate between 0 and T
-        Lx (float): Width of space in x dir (metres)
-        Ly (float): Width of space in y dir (metres)
-        Nx_points (int): Number of to discretise x from 0 to Lx
-        Ny_points (int): Number of to discretise y from 0 to Ly
-        a (float): The heat transfer coefficient for the sink term. Set to 0 for no sink term.
-        u_inf (float): The ambient (air) temperature, for the sink term. If no sink term, you can leave this blank        
+        L (float): Height of can (metres)
+        Nx_points (int): Number of to discretise x from 0 to L 
+        a (float): The value of the heat transfer coefficent for the sink term
+        h (float): The value of the heat transfer coefficent for the top boundary condition
+        kW (float): The thermal conductivity of the liquid within the can.
+        u_inf (float): The ambient (air) temperature, for the sink term and fancy boundary conditions.        
     Returns:
-        U (matrix): A Nx_points by Ny_points by Nt_points matrix, where each U[:, :, t] is the simulated heat distribution at a time t.
+        U (matrix): A Nx_points by Nt_points matrix, where each column is the simulated heat distribution at a time t.
 
     """
-    dx = Lx/(Nx_points - 1)
-    dy = Ly/(Ny_points - 1)
+    dx = L/(Nx_points - 1)
     dt = T/(Nt_points - 1)
-    Cx = D*dt/(dx**2)
-    Cy = D*dt/(dy**2)
-    if Cx > 0.5:
-        print(f"Warning: {Cx=} is greater than 0.5. This may cause instability. Try using a smaller timestep.")
-    if Cy > 0.5:
-        print(f"Warning: {Cy=} is greater than 0.5. This may cause instability. Try using a smaller timestep.")
+    C = D*dt/(dx**2)
 
-    U = np.zeros((Nx_points, Ny_points, Nt_points)) # this is where we'll put results
-    U[:, :, 0] = u0 # initial condition
+    U = np.zeros((Nx_points,Nt_points)) # this is where we'll put results
+    U[:,0] = u0 # initial condition
 
-    # BCs:
-    U[:, 0, 1:] = bT # top
-    U[:, Ny_points-1, 1:] = bB # bottom
+    # This defines the backward Euler timestep AU_{t+1} = U_t. Definition of A is given as below in lectures for dirichlet conditions
+    A = np.zeros((Nx_points, Nx_points))
+    for i in range(1, Nx_points-1):
+        A[i,i-1] = -C
+        A[i,i+1] = -C
+        A[i,i] = 1 + 2*C    
+    
+    # implement the time dependent bottom boundary condition
+    A[0,0] = 1
+
+    # Implement the Newton cooling boundary condition at the top
+    A[Nx_points-1,Nx_points-1] = 1+2*C + (C*2*dx*h)/kW
+    A[Nx_points-1,Nx_points-2] = -2*C
+
+    # Create the vector that updates u_old to account for the Newton cooling boundary condition
+    newtcool = np.zeros(Nx_points)
 
     # Run simulation
-    for s in range(1, Nt_points):
-        for m in range(1,Nx_points - 1):
-            for n in range(1, Ny_points - 1):
-                U[m,n,s] = U[m,n,s-1] + Cx*U[m+1,n,s-1] -2*Cx*U[m,n,s-1] + Cx*U[m-1,n,s-1] + Cy*U[m,n+1,s-1] -2*Cy*U[m,n,s-1] + Cy*U[m,n-1,s-1]
+    for n in range(1, Nt_points):
 
-        U[0,1:-1,s] = U[1,1:-1,s] # L and R bdary conditions
-        U[-1,1:-1,s] = U[-2,1:-1,s]
+        # Update the Newton cooling boundary condition
+        newtcool[-1] = (C*2*dx*h*u_inf)/kW
+        
+        # update u by solving the matrix system AU_{t+1} = U_t
+        u_old = U[:,n-1] #+ newtcool
+        u_new = np.linalg.solve(A,u_old) 
+        u_new[1:Nx_points-1] -= a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
+
+        u_new[0] = b0(n * T/Nt_points) # enforce bottom boundary condition
+        
+        U[:,n] = u_new # store heat distribution in the results matrix 
 
     return U
