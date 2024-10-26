@@ -9,7 +9,8 @@ def create_index_to_time_fn(T, Nt_points):
 
 def create_time_to_index_fn(T, Nt_points):
     def time_to_index(t):
-        # the first line gives you decimals that may be a tiny bit off, so make sure to turn into integers
+        """This gives you the closest index to your time, so you can input a time that is not 
+        of the form n * dt and you'll still get an integer index"""
         i = t * (Nt_points - 1)/T
         i = np.array(i.round(0), dtype = int)
         return i
