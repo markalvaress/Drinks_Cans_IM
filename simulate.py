@@ -1,7 +1,7 @@
 # Contains functions to simulate various aspects of the temperature distribution.
 import numpy as np
 
-def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0):
+def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0, diam = 0):
     """
     Simulates the heat distribution over time of a material over time with one fixed temperature endpoint, one endpoint with a time dependent temperature, and a sink term, using a backward Euler scheme.
     
@@ -14,7 +14,8 @@ def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0)
         L (float): Height of can (metres)
         Nx_points (int): Number of to discretise x from 0 to L 
         a (float): The heat transfer coefficient for the sink term. Set to 0 for no sink term.
-        u_inf (float): The ambient (air) temperature, for the sink term. If no sink term, you can leave this blank        
+        u_inf (float): The ambient (air) temperature, for the sink term. If no sink term, you can leave this blank   
+        diam (float): The diameter of the can, for the sink term. If no sink term, you can leave this blank.     
     Returns:
         U (matrix): A Nx_points by Nt_points matrix, where each column is the simulated heat distribution at a time t.
 
@@ -22,6 +23,7 @@ def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0)
     dx = L/(Nx_points - 1)
     dt = T/(Nt_points - 1)
     C = D*dt/(dx**2)
+    unit_area = dx*np.pi*diam # for use in the sink term. If we're not using sink term, this will be 0 but won't be used.
 
     U = np.zeros((Nx_points,Nt_points)) # this is where we'll put results
     U[:,0] = u0 # initial condition
@@ -41,7 +43,7 @@ def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0)
         # update u by solving the matrix system AU_{t+1} = U_t
         u_old = U[:,n-1]
         u_new = np.linalg.solve(A,u_old) 
-        u_new[1:Nx_points-1] -= a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
+        u_new[1:Nx_points-1] -= unit_area*a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
 
         u_new[0] = b0(n * T/Nt_points) # enforce bottom boundary condition
         
@@ -102,7 +104,7 @@ def time_to_temp(avg_temps, temp, index_to_time):
     print(f"None of the given average temperatures is above {temp}.")
     return None
 
-def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW, u_inf = 0, insulated = False):
+def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW, u_inf = 0, diam = 0, insulated = False):
     """
     Simulates the heat distribution over time of a material over time with one Newton cooling boundary condition, one endpoint with a time dependent temperature, and a sink term, using a backward Euler scheme.
     
@@ -126,6 +128,7 @@ def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW
     dx = L/(Nx_points - 1)
     dt = T/(Nt_points - 1)
     C = D*dt/(dx**2)
+    unit_area = dx*np.pi*diam # for use in the sink term. If we're not using sink term, this will be 0 but won't be used.
 
     U = np.zeros((Nx_points,Nt_points)) # this is where we'll put results
     U[:,0] = u0 # initial condition
@@ -160,7 +163,7 @@ def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW
         # update u by solving the matrix system AU_{t+1} = U_t
         u_old = U[:,n-1] + newtcool
         u_new = np.linalg.solve(A,u_old) 
-        u_new[1:Nx_points-1] -= a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
+        u_new[1:Nx_points-1] -= unit_area*a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
 
         u_new[0] = b0(n * T/Nt_points) # enforce bottom boundary condition
         
