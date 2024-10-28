@@ -23,7 +23,6 @@ def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0,
     dx = L/(Nx_points - 1)
     dt = T/(Nt_points - 1)
     C = D*dt/(dx**2)
-    unit_area = dx*np.pi*diam # for use in the sink term. If we're not using sink term, this will be 0 but won't be used.
 
     U = np.zeros((Nx_points,Nt_points)) # this is where we'll put results
     U[:,0] = u0 # initial condition
@@ -43,7 +42,7 @@ def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0,
         # update u by solving the matrix system AU_{t+1} = U_t
         u_old = U[:,n-1]
         u_new = np.linalg.solve(A,u_old) 
-        u_new[1:Nx_points-1] -= unit_area*a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
+        u_new[1:Nx_points-1] -= dx*a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints. The htc a already takes into account the area per unit length in x-dir, so we multiply by dx to get what we want
 
         u_new[0] = b0(n * T/Nt_points) # enforce bottom boundary condition
         
@@ -114,8 +113,6 @@ def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW
     dx = L/(Nx_points - 1)
     dt = T/(Nt_points - 1)
     C = D*dt/(dx**2)
-    unit_area = dx*np.pi*diam # for use in the sink term. If we're not using sink term, this will be 0 but won't be used.
-
     U = np.zeros((Nx_points,Nt_points)) # this is where we'll put results
     U[:,0] = u0 # initial condition
 
@@ -143,13 +140,14 @@ def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW
         newtcool = 0
         A[Nx_points-1,Nx_points-1] = 1+2*C 
         A[Nx_points-1,Nx_points-2] = -2*C
+        a = 0
 
     # Run simulation
     for n in range(1, Nt_points):
         # update u by solving the matrix system AU_{t+1} = U_t
         u_old = U[:,n-1] + newtcool
         u_new = np.linalg.solve(A,u_old) 
-        u_new[1:Nx_points-1] -= unit_area*a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints
+        u_new[1:Nx_points-1] -= dx*a*(u_old[1:Nx_points-1] - u_inf) # This is the sink term - it doesn't affect the endpoints. The htc a already takes into account the area per unit length in x-dir, so we multiply by dx to get what we want
 
         u_new[0] = b0(n * T/Nt_points) # enforce bottom boundary condition
         

@@ -33,7 +33,7 @@ def sink_HTC(L, r1, r2, kS, hA, hB):
         a (float): The values of the heat transfer coefficent for the sink term
     """
 
-    a = (2*np.pi*L)/(1/(hA*r1) + 1/(hB*r2) + np.log(r2/r1)/kS)
+    a = (2*np.pi)/(1/(hA*r1) + 1/(hB*r2) + np.log(r2/r1)/kS)
 
     return a
 
