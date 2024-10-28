@@ -136,12 +136,12 @@ def simulate_sink_with_fancy_bcs(u0, b0, D, T, Nt_points, L, Nx_points, a, h, kW
         # Set up the rest of the Newton cooling boundary condition
         newtcool[-1] = (C*2*dx*h*u_inf)/kW
 
-    else: 
+    if insulated == True: 
         newtcool = 0
         A[Nx_points-1,Nx_points-1] = 1+2*C 
         A[Nx_points-1,Nx_points-2] = -2*C
         a = 0
-
+        
     # Run simulation
     for n in range(1, Nt_points):
         # update u by solving the matrix system AU_{t+1} = U_t
