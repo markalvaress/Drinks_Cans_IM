@@ -70,20 +70,6 @@ def create_analytic_toy_fn(b0, bL, L, D, n_sum_terms = 200):
     
     return U_analyt
 
-def create_analytic_avg_temp(b0, bL, L, D, n_summation = 200):
-    """Returns the analytic function describing the average temperature at times t"""
-    def U_avg_analyt(t):
-        """t is in seconds. Must be an np.array"""
-        u_d = b0 - bL
-        sol = b0 - u_d/2
-
-        for k in range(n_summation):
-            sol -= 4*u_d/np.pi**2 * np.exp(-((2*k + 1)*np.pi/L)**2 * D * t) / (2*k + 1)**2
-
-        return sol
-
-    return U_avg_analyt
-
 def create_numeric_avtemp_fn(U, dx, time_to_index):
     """Returns the numeric function describing the average temperature at times t"""
     def avg_temp_numeric(t):
