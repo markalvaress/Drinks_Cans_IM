@@ -13,7 +13,9 @@ Ly = 1
 Nx_points = 20
 Ny_points = 20
 u0 = 20*np.ones((Nx_points, Ny_points))
-U = sim.simulate_2d_corner_heat(u0, bT, bB, D, T, Nt_points, Lx, Ly, Nx_points, Ny_points)
+
+# run simulation
+U = sim.simulate_2d_heat(u0, bT, bB, D, T, Nt_points, Lx, Ly, Nx_points, Ny_points)
 
 delta_t = T/(Nt_points - 1)
 
@@ -34,5 +36,6 @@ def plotheatmap(u_k, k):
 def animate(k):
     plotheatmap(U[:,:,k], k)
 
+# animate results and save
 anim = animation.FuncAnimation(plt.figure(), animate, interval=T, frames=Nt_points//5, repeat=False)
 anim.save("heat_equation_solution.gif")
