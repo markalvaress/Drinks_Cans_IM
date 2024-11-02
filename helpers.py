@@ -57,4 +57,3 @@ def boundary_condition_HTC(W, r1, kS, hA, hB):
     h = 1/(1/(hA*A) + W/(kS*A) + 1/(hB*A))
 
     return h
-

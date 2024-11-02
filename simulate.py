@@ -50,25 +50,6 @@ def simulate_dirichlet_sink(u0, b0, D, T, Nt_points, L, Nx_points, a, u_inf = 0,
 
     return U
 
-def create_analytic_toy_fn(b0, bL, L, D, n_sum_terms = 200):
-    """Create a function that returns the value of the analytic solution to the toy problem with the given parameters."""
-    
-    def U_analyt(x, t):
-        """x can be a 1-d array"""
-        if t == 0: # initial condition
-            sol = bL * np.ones(len(x))
-            sol[0] = b0
-        else:
-            u_d = b0 - bL
-
-            sol = b0 - u_d*(x / L)
-            for n in range(1,n_sum_terms):
-                sol -= 2*u_d/(n*np.pi) * np.sin(n*np.pi*x/L) * np.exp(-(n*np.pi/L)**2 * D * t)
-
-        return sol
-    
-    return U_analyt
-
 def create_numeric_avtemp_fn(U, dx, time_to_index):
     """Returns the numeric function describing the average temperature at times t"""
     def avg_temp_numeric(t):
